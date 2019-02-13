@@ -1,14 +1,16 @@
-package main
+package config
 
 import (
 	"net/http"
+
+	"../controller"
 
 	"github.com/gorilla/mux"
 )
 
 // InitRoutes initialize application routes
 func InitRoutes() *mux.Router {
-	controller := new(CommentController)
+	controller := new(controller.CommentController)
 	router := mux.NewRouter().StrictSlash(true)
 
 	router.
@@ -20,7 +22,7 @@ func InitRoutes() *mux.Router {
 	router.
 		Methods("DELETE").
 		Path("/purchase/{id}/comments/").
-		Name("Create").
+		Name("Delete").
 		Handler(http.HandlerFunc(controller.Delete))
 
 	router.

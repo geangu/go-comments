@@ -1,18 +1,13 @@
-Requisitos:
+### Requirements:
 
-    - go
-    - mongodb
+    You must have previously installed docker and docker compose
 
-Ejecutar en la Terminal:
-
+### Run:
 ```
-$ go get -u github.com/gorilla/mux
-$ go get gopkg.in/mgo.v2
-$ go get gopkg.in/go-playground/validator.v9
+docker-compose up
 ```
 
-Test
-
+### Test:
 ```
-$ go test -timeout 30s -coverprofile=/tmp/coverage
+go test -cover ./...
 ```

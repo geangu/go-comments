@@ -1,22 +1,33 @@
-package main
+package controller
 
 import (
 	"encoding/json"
 	"net/http"
 	"time"
 
+	"../domain"
+	services "../service"
 	"github.com/gorilla/mux"
+	validator "gopkg.in/go-playground/validator.v9"
 	mgo "gopkg.in/mgo.v2"
 )
 
 // CommentController controller for the comment resource
 type CommentController struct{}
 
+var validate *validator.Validate
+var service *services.CommentService
+
+func init() {
+	validate = validator.New()
+	service = new(services.CommentService)
+}
+
 // Create comment method
 func (c *CommentController) Create(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 
-	var comment Comment
+	var comment domain.Comment
 	err := decoder.Decode(&comment)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
@@ -32,9 +43,7 @@ func (c *CommentController) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var service = new(CommentService)
-	comment, err = service.Create(comment)
-
+	err = service.Create(comment)
 	if err != nil && mgo.IsDup(err) {
 		http.Error(w, "There is already a qualification for this purchase", http.StatusConflict)
 		return
@@ -50,9 +59,7 @@ func (c *CommentController) Delete(w http.ResponseWriter, r *http.Request) {
 	var params = mux.Vars(r)
 	id := params["id"]
 
-	var service = new(CommentService)
 	err := service.Delete(id)
-
 	if err != nil {
 		http.Error(w, "Unable to remove the resource", http.StatusNotFound)
 		return
@@ -67,9 +74,7 @@ func (c *CommentController) FindByPurchase(w http.ResponseWriter, r *http.Reques
 	var params = mux.Vars(r)
 	purchase, _ := params["id"]
 
-	var service = new(CommentService)
 	var comment, err = service.FindByPurchase(purchase)
-
 	if err != nil {
 		http.Error(w, "Resource not found", http.StatusNotFound)
 		return
@@ -98,7 +103,6 @@ func (c *CommentController) FindByEstablishment(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	var service = new(CommentService)
 	comments, _ := service.FindByEstablishmentInRange(establishment, startDate, endDate)
 	if len(comments) == 0 {
 		http.Error(w, "No resources found", http.StatusNotFound)

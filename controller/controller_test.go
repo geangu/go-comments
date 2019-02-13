@@ -1,28 +1,53 @@
-package main
+package controller
 
 import (
 	"bytes"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/gorilla/mux"
 )
+
+func initRoutes() *mux.Router {
+	controller := new(CommentController)
+	router := mux.NewRouter().StrictSlash(true)
+
+	router.
+		Methods("POST").
+		Path("/comments/").
+		Name("Create").
+		Handler(http.HandlerFunc(controller.Create))
+
+	router.
+		Methods("DELETE").
+		Path("/purchase/{id}/comments/").
+		Name("Delete").
+		Handler(http.HandlerFunc(controller.Delete))
+
+	router.
+		Methods("GET").
+		Path("/purchase/{id}/comments/").
+		Name("FindByPurchase").
+		Handler(http.HandlerFunc(controller.FindByPurchase))
+
+	router.
+		Methods("GET").
+		Path("/establishment/{id}/comments/").
+		Name("FindByEstablishment").
+		Handler(http.HandlerFunc(controller.FindByEstablishment))
+
+	return router
+}
 
 // TestCreateOk Successful creation of a comment
 func TestCreateOk(t *testing.T) {
-	routes := InitRoutes()
+	routes := initRoutes()
 	response := httptest.NewRecorder()
 
-	comment := &Comment{
-		Text:          "Test comments",
-		User:          "test-purchase-1",
-		Establishment: "test-establishment-1",
-		Purchase:      "test-purchase-1",
-		Score:         1,
-	}
-	jsonComment, _ := json.Marshal(comment)
+	json := []byte("{\"purchase_id\":\"test-purchase-1\",\"establishment_id\": \"test-establishment-1\",\"user_id\": \"test-user-1\",\"text\": \"Test comments\",\"score\": 1}")
+	request, err := http.NewRequest("POST", "/comments/", bytes.NewBuffer(json))
 
-	request, err := http.NewRequest("POST", "/comments/", bytes.NewBuffer(jsonComment))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,19 +60,12 @@ func TestCreateOk(t *testing.T) {
 
 // TestCreateValidationErrors Validation errors in the creation of a comment
 func TestCreateValidationErrors(t *testing.T) {
-	routes := InitRoutes()
+	routes := initRoutes()
 	response := httptest.NewRecorder()
 
-	comment := &Comment{
-		Text:          "Test comments",
-		User:          "test-purchase-1",
-		Establishment: "test-establishment-1",
-		Purchase:      "test-purchase-1",
-		Score:         10,
-	}
-	jsonComment, _ := json.Marshal(comment)
+	json := []byte("{\"purchase_id\":\"test-purchase-1\",\"establishment_id\": \"test-establishment-1\",\"user_id\": \"test-user-1\",\"text\": \"Test comments\",\"score\": 10}")
+	request, err := http.NewRequest("POST", "/comments/", bytes.NewBuffer(json))
 
-	request, err := http.NewRequest("POST", "/comments/", bytes.NewBuffer(jsonComment))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,19 +87,12 @@ func TestCreateValidationErrors(t *testing.T) {
 
 // TestCreateDuplicated Creation of duplicate comment
 func TestCreateDuplicated(t *testing.T) {
-	routes := InitRoutes()
+	routes := initRoutes()
 	response := httptest.NewRecorder()
 
-	comment := &Comment{
-		Text:          "Test comments",
-		User:          "test-purchase-1",
-		Establishment: "test-establishment-1",
-		Purchase:      "test-purchase-1",
-		Score:         1,
-	}
-	jsonComment, _ := json.Marshal(comment)
+	json := []byte("{\"purchase_id\":\"test-purchase-1\",\"establishment_id\": \"test-establishment-1\",\"user_id\": \"test-user-1\",\"text\": \"Test comments\",\"score\": 1}")
+	request, err := http.NewRequest("POST", "/comments/", bytes.NewBuffer(json))
 
-	request, err := http.NewRequest("POST", "/comments/", bytes.NewBuffer(jsonComment))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +115,7 @@ func TestCreateDuplicated(t *testing.T) {
 
 // TestFindByPuchaseOk Get comment on a purchase
 func TestFindByPuchaseOk(t *testing.T) {
-	routes := InitRoutes()
+	routes := initRoutes()
 
 	response := httptest.NewRecorder()
 	request, err := http.NewRequest("GET", "/purchase/test-purchase-1/comments/", nil)
@@ -120,7 +131,7 @@ func TestFindByPuchaseOk(t *testing.T) {
 
 // TestFindByPuchaseNotFound Can not find a purchase comment
 func TestFindByPuchaseNotFound(t *testing.T) {
-	routes := InitRoutes()
+	routes := initRoutes()
 
 	response := httptest.NewRecorder()
 	request, err := http.NewRequest("GET", "/purchase/123456/comments/", nil)
@@ -145,7 +156,7 @@ func TestFindByPuchaseNotFound(t *testing.T) {
 
 // TestFindByEstablishmentOk Get comments from an establishment
 func TestFindByEstablishmentOk(t *testing.T) {
-	routes := InitRoutes()
+	routes := initRoutes()
 
 	response := httptest.NewRecorder()
 	request, err := http.NewRequest("GET", "/establishment/test-establishment-1/comments/?start=2019-01-01T00:00:00-05:00&end=2030-01-01T00:00:00-05:00", nil)
@@ -165,7 +176,7 @@ func TestFindByEstablishmentOk(t *testing.T) {
 
 // TestFindByEstablishmentNotFound Comments of an establishment not found
 func TestFindByEstablishmentNotFound(t *testing.T) {
-	routes := InitRoutes()
+	routes := initRoutes()
 
 	response := httptest.NewRecorder()
 	request, err := http.NewRequest("GET", "/establishment/test-establishment-1/comments/?start=2019-01-01T00:00:00-05:00&end=2019-01-01T00:00:00-05:00", nil)
@@ -190,7 +201,7 @@ func TestFindByEstablishmentNotFound(t *testing.T) {
 
 // TestFindByEstablishmentWrongStart Start date not valid
 func TestFindByEstablishmentWrongStart(t *testing.T) {
-	routes := InitRoutes()
+	routes := initRoutes()
 
 	response := httptest.NewRecorder()
 	request, err := http.NewRequest("GET", "/establishment/test-establishment-1/comments/?start=2019-01-01&end=2020-01-01", nil)
@@ -215,7 +226,7 @@ func TestFindByEstablishmentWrongStart(t *testing.T) {
 
 // TestFindByEstablishmentWrongEnd End date not valid
 func TestFindByEstablishmentWrongEnd(t *testing.T) {
-	routes := InitRoutes()
+	routes := initRoutes()
 
 	response := httptest.NewRecorder()
 	request, err := http.NewRequest("GET", "/establishment/test-establishment-1/comments/?start=2019-01-01T00:00:00-05:00&end=2020-01-01", nil)
@@ -240,7 +251,7 @@ func TestFindByEstablishmentWrongEnd(t *testing.T) {
 
 // TestDeleteOk Successful creation of a comment
 func TestDeleteNotFound(t *testing.T) {
-	routes := InitRoutes()
+	routes := initRoutes()
 	response := httptest.NewRecorder()
 
 	request, err := http.NewRequest("DELETE", "/purchase/test-purchase/comments/", nil)
@@ -256,7 +267,7 @@ func TestDeleteNotFound(t *testing.T) {
 
 // TestDeleteOk Successful creation of a comment
 func TestDeleteOk(t *testing.T) {
-	routes := InitRoutes()
+	routes := initRoutes()
 	response := httptest.NewRecorder()
 
 	request, err := http.NewRequest("DELETE", "/purchase/test-purchase-1/comments/", nil)
